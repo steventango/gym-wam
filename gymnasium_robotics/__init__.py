@@ -76,6 +76,63 @@ def register_robotics_envs():
             max_episode_steps=50,
         )
 
+        # WAM
+        register(
+            id=f"WAMSlide{suffix}-v1",
+            entry_point="gymnasium_robotics.envs.wam.slide:MujocoPyWAMSlideEnv",
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
+        register(
+            id=f"WAMSlide{suffix}-v2",
+            entry_point="gymnasium_robotics.envs.wam.slide:MujocoWAMSlideEnv",
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
+        register(
+            id=f"WAMPickAndPlace{suffix}-v1",
+            entry_point="gymnasium_robotics.envs.wam.pick_and_place:MujocoPyWAMPickAndPlaceEnv",
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
+        register(
+            id=f"WAMPickAndPlace{suffix}-v2",
+            entry_point="gymnasium_robotics.envs.wam.pick_and_place:MujocoWAMPickAndPlaceEnv",
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
+        register(
+            id=f"WAMReach{suffix}-v1",
+            entry_point="gymnasium_robotics.envs.wam.reach:MujocoPyWAMReachEnv",
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
+        register(
+            id=f"WAMReach{suffix}-v2",
+            entry_point="gymnasium_robotics.envs.wam.reach:MujocoWAMReachEnv",
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
+        register(
+            id=f"WAMPush{suffix}-v1",
+            entry_point="gymnasium_robotics.envs.wam.push:MujocoPyWAMPushEnv",
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
+        register(
+            id=f"WAMPush{suffix}-v2",
+            entry_point="gymnasium_robotics.envs.wam.push:MujocoWAMPushEnv",
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
         # Hand
         register(
             id=f"HandReach{suffix}-v0",
