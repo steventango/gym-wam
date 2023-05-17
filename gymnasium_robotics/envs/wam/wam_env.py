@@ -37,6 +37,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             target_range,
             distance_threshold,
             reward_type,
+            dof,
             **kwargs
         ):
             """Initializes a new WAM environment.
@@ -54,6 +55,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 distance_threshold (float): the threshold after which a goal is considered achieved
                 initial_qpos (dict): a dictionary of joint names and values that define the initial configuration
                 reward_type ('sparse' or 'dense'): the reward type, i.e. sparse or dense
+                dof (int): the number of degrees of freedom of the robot
             """
 
             self.gripper_extra_height = gripper_extra_height
@@ -65,6 +67,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.target_range = target_range
             self.distance_threshold = distance_threshold
             self.reward_type = reward_type
+            self.dof = dof
 
             super().__init__(n_actions=4, **kwargs)
 
@@ -89,7 +92,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             )  # ensure that we don't change the action outside of this scope
             pos_ctrl, gripper_ctrl = action[:3], action[3]
 
-            pos_ctrl *= 0.05  # limit maximum change in position
+            pos_ctrl *= 0.5  # limit maximum change in position
             rot_ctrl = [
                 1.0,
                 0.0,
@@ -360,7 +363,7 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
         )
 
     def _get_gripper_xpos(self):
-        body_id = self._model_names.body_name2id["robot0:gripper_link"]
+        body_id = self._model_names.body_name2id["robot0:grip"]
         return self.data.xpos[body_id]
 
     def _render_callback(self):
@@ -406,7 +409,7 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
 
         # Move end effector into position.
         gripper_target = np.array(
-            [-0.498, 0.005, -0.431 + self.gripper_extra_height]
+            [0, 0, 0 + self.gripper_extra_height]
         ) + self._utils.get_site_xpos(self.model, self.data, "robot0:grip")
         gripper_rotation = np.array([1.0, 0.0, 1.0, 0.0])
         self._utils.set_mocap_pos(self.model, self.data, "robot0:mocap", gripper_target)

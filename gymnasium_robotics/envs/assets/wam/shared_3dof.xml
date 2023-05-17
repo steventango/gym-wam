@@ -34,10 +34,9 @@
         <mesh file="wrist_palm_link_fine.stl"/>
         <mesh file="wrist_palm_link_convex.stl"/>   
     </asset>
-    <include file="include_bhandDependencies.xml"/>
 
     <equality>
-        <weld body1="robot0:mocap" body2="wam/bhand/bhand_palm_link" solimp="0.9 0.95 0.001" solref="0.02 1"></weld>
+        <weld body1="robot0:mocap" body2="wam/wrist_palm_link" solimp="0.9 0.95 0.001" solref="0.02 1"></weld>
     </equality>
 
     <default>

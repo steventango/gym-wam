@@ -1,11 +1,12 @@
 import os
 
+import numpy as np
 from gymnasium.utils.ezpickle import EzPickle
 
-from gymnasium_robotics.envs.wam import MujocoWAMEnv, MujocoPyWAMEnv
+from gymnasium_robotics.envs.wam import MujocoPyWAMEnv, MujocoWAMEnv
 
 # Ensure we get the path separator correct on windows
-MODEL_XML_PATH = os.path.join("fetch", "reach.xml")
+MODEL_XML_PATH = os.path.join("wam", "reach.xml")
 
 
 class MujocoWAMReachEnv(MujocoWAMEnv, EzPickle):
@@ -114,15 +115,22 @@ class MujocoWAMReachEnv(MujocoWAMEnv, EzPickle):
     * v1: the environment depends on `mujoco_py` which is no longer maintained.
     """
 
-    def __init__(self, reward_type: str = "sparse", **kwargs):
+    def __init__(self, reward_type: str = "sparse", dof: int = 7, **kwargs):
         initial_qpos = {
-            "robot0:slide0": 0.4049,
-            "robot0:slide1": 0.48,
-            "robot0:slide2": 0.0,
+            "wam/base_yaw_joint": 0,
+            "wam/shoulder_pitch_joint": .25 * np.pi,
+            "wam/shoulder_yaw_joint": 0,
+            "wam/elbow_pitch_joint": .75 * np.pi,
         }
+        if dof == 3:
+            model_xml_path = MODEL_XML_PATH.replace(".xml", f"_{dof}dof.xml")
+        elif dof == 7:
+            model_xml_path = MODEL_XML_PATH
+        else:
+            raise ValueError("dof must be either 3 or 7")
         MujocoWAMEnv.__init__(
             self,
-            model_path=MODEL_XML_PATH,
+            model_path=model_xml_path,
             has_object=False,
             block_gripper=True,
             n_substeps=20,
@@ -134,21 +142,29 @@ class MujocoWAMReachEnv(MujocoWAMEnv, EzPickle):
             distance_threshold=0.05,
             initial_qpos=initial_qpos,
             reward_type=reward_type,
+            dof=dof,
             **kwargs,
         )
-        EzPickle.__init__(self, reward_type=reward_type, **kwargs)
+        EzPickle.__init__(self, reward_type=reward_type, dof=dof, **kwargs)
 
 
 class MujocoPyWAMReachEnv(MujocoPyWAMEnv, EzPickle):
-    def __init__(self, reward_type: str = "sparse", **kwargs):
+    def __init__(self, reward_type: str = "sparse", dof: int = 7, **kwargs):
         initial_qpos = {
-            "robot0:slide0": 0.4049,
-            "robot0:slide1": 0.48,
-            "robot0:slide2": 0.0,
+            "wam/base_yaw_joint": 0,
+            "wam/shoulder_pitch_joint": .5 * np.pi,
+            "wam/shoulder_yaw_joint": 0,
+            "wam/elbow_pitch_joint": .5 * np.pi,
         }
+        if dof == 3:
+            model_xml_path = MODEL_XML_PATH.replace(".xml", f"_{dof}dof.xml")
+        elif dof == 7:
+            model_xml_path = MODEL_XML_PATH
+        else:
+            raise ValueError("dof must be either 3 or 7")
         MujocoPyWAMEnv.__init__(
             self,
-            model_path=MODEL_XML_PATH,
+            model_path=model_xml_path,
             has_object=False,
             block_gripper=True,
             n_substeps=20,
@@ -160,6 +176,7 @@ class MujocoPyWAMReachEnv(MujocoPyWAMEnv, EzPickle):
             distance_threshold=0.05,
             initial_qpos=initial_qpos,
             reward_type=reward_type,
+            dof=dof,
             **kwargs,
         )
-        EzPickle.__init__(self, reward_type=reward_type, **kwargs)
+        EzPickle.__init__(self, reward_type=reward_type, dof=dof, **kwargs)
