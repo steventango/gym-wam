@@ -69,24 +69,24 @@
                 quat="0.630602 0.776093 0.00401969 -0.002372" mass="1.05376"
                 diaginertia="0.000555168 0.00046317 0.000234072" /><!--this is an approximation-->
               <joint name="wam/wrist_yaw_joint" range="-4.55 1.25" damping="0.55" />
-              <geom class="viz" mesh="wrist_yaw_link_fine" />
+              <!-- <geom class="viz" mesh="wrist_yaw_link_fine" />
               <geom class="col" mesh="wrist_yaw_link_convex_decomposition_p1" />
-              <geom class="col" mesh="wrist_yaw_link_convex_decomposition_p2" />
+              <geom class="col" mesh="wrist_yaw_link_convex_decomposition_p2" /> -->
               <body name="wam/wrist_pitch_link" pos="0 0 0" quat="0.707107 -0.707107 0 0">
                 <inertial pos="-0.00012262 -0.0246834 -0.0170319"
                   quat="0.630602 0.776093 0.00401969 -0.002372" mass="0.517974"
                   diaginertia="0.000555168 0.00046317 0.000234072" />
                 <joint name="wam/wrist_pitch_joint" range="-1.5707 1.5707" damping="0.11" />
-                <geom class="viz" mesh="wrist_pitch_link_fine" />
+                <!-- <geom class="viz" mesh="wrist_pitch_link_fine" />
                 <geom class="col" mesh="wrist_pitch_link_convex_decomposition_p1" />
                 <geom class="col" mesh="wrist_pitch_link_convex_decomposition_p2" />
-                <geom class="col" mesh="wrist_pitch_link_convex_decomposition_p3" />
+                <geom class="col" mesh="wrist_pitch_link_convex_decomposition_p3" /> -->
                 <body name="wam/wrist_palm_link" pos="0 0 0" quat="0.707107 0.707107 0 0">
                   <inertial pos="0 0 0.055" quat="0.707107 0 0 0.707107" mass="0.0828613"
                     diaginertia="0.00020683 0.00010859 0.00010851" />
                   <joint name="wam/palm_yaw_joint" range="-3 3" damping="0.11" />
-                  <geom class="viz" mesh="wrist_palm_link_fine" />
-                  <geom class="col" mesh="wrist_palm_link_convex" />
+                  <!-- <geom class="viz" mesh="wrist_palm_link_fine" />
+                  <geom class="col" mesh="wrist_palm_link_convex" /> -->
                 </body>
               </body>
             </body>
