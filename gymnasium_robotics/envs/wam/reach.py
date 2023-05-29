@@ -117,10 +117,10 @@ class MujocoWAMReachEnv(MujocoWAMEnv, EzPickle):
 
     def __init__(self, reward_type: str = "sparse", dof: int = 7, **kwargs):
         initial_qpos = {
-            "wam/base_yaw_joint": 0,
-            "wam/shoulder_pitch_joint": .25 * np.pi,
-            "wam/shoulder_yaw_joint": 0,
-            "wam/elbow_pitch_joint": .75 * np.pi,
+            "robot0/base_yaw_joint": 0,
+            "robot0/shoulder_pitch_joint": .25 * np.pi,
+            "robot0/shoulder_yaw_joint": 0,
+            "robot0/elbow_pitch_joint": .75 * np.pi,
         }
         if dof == 3:
             model_xml_path = MODEL_XML_PATH.replace(".xml", f"_{dof}dof.xml")
@@ -151,10 +151,10 @@ class MujocoWAMReachEnv(MujocoWAMEnv, EzPickle):
 class MujocoPyWAMReachEnv(MujocoPyWAMEnv, EzPickle):
     def __init__(self, reward_type: str = "sparse", dof: int = 7, **kwargs):
         initial_qpos = {
-            "wam/base_yaw_joint": 0,
-            "wam/shoulder_pitch_joint": .5 * np.pi,
-            "wam/shoulder_yaw_joint": 0,
-            "wam/elbow_pitch_joint": .5 * np.pi,
+            "robot0/base_yaw_joint": 0,
+            "robot0/shoulder_pitch_joint": .5 * np.pi,
+            "robot0/shoulder_yaw_joint": 0,
+            "robot0/elbow_pitch_joint": .5 * np.pi,
         }
         if dof == 3:
             model_xml_path = MODEL_XML_PATH.replace(".xml", f"_{dof}dof.xml")

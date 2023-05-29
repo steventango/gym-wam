@@ -51,12 +51,8 @@
     </default>
 
     <actuator>
-        <motor gear="100.0" joint="wam/base_yaw_joint"/>
-        <motor gear="100.0" joint="wam/shoulder_pitch_joint"/>
-        <!-- <motor gear="10.0" joint="wam/shoulder_yaw_joint"/> -->
-        <motor gear="50.0" joint="wam/elbow_pitch_joint"/>
-        <!-- <motor gear="10.0" joint="wam/wrist_yaw_joint"/>
-        <motor gear="10.0" joint="wam/wrist_pitch_joint"/>
-        <motor gear="10.0" joint="wam/palm_yaw_joint"/> -->
+        <motor gear="100.0" joint="robot0/base_yaw_joint"/>
+        <motor gear="100.0" joint="robot0/shoulder_pitch_joint"/>
+        <motor gear="50.0" joint="robot0/elbow_pitch_joint"/>
     </actuator>
 </mujoco>
