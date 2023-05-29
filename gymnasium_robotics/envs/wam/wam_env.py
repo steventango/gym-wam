@@ -5,17 +5,13 @@ import numpy as np
 from gymnasium_robotics.envs.robot_env import MujocoPyRobotEnv, MujocoRobotEnv
 from gymnasium_robotics.utils import rotations
 
+
 DEFAULT_CAMERA_CONFIG = {
     "distance": 2.5,
     "azimuth": 132.0,
-    "elevation": -14.0,
-    "lookat": np.array([1.3, 0.75, 0.55]),
+    "elevation": 0,
+    "lookat": np.array([0.47, 0, 0.69]),
 }
-
-
-def goal_distance(goal_a, goal_b):
-    assert goal_a.shape == goal_b.shape
-    return np.linalg.norm(goal_a - goal_b, axis=-1)
 
 
 def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
@@ -68,18 +64,33 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.distance_threshold = distance_threshold
             self.reward_type = reward_type
             self.dof = dof
-
+            self.C = np.zeros((2, 3, 4))
+            self.width = 640
+            self.height = 480
+            if self.dof == 3:
+                self.active_joint_indices = [0, 1, 3]
+                self.observation_joint_indices = self.active_joint_indices + [4]
+            else:
+                self.active_joint_indices = list(range(self.dof))
+                self.observation_joint_indices = self.active_joint_indices
             super().__init__(n_actions=dof, **kwargs)
 
         # GoalEnv methods
         # ----------------------------
+        def goal_distance(self, goal_a, goal_b, dim=3):
+            assert goal_a.shape == goal_b.shape
+            if dim == 3:
+                return np.linalg.norm(goal_a - goal_b, axis=-1)
+            goal_a_img = self._project_pos(goal_a)
+            goal_b_img = self._project_pos(goal_b)
+            return np.linalg.norm(goal_a_img - goal_b_img)
 
         def compute_reward(self, achieved_goal, goal, info):
             # Compute distance between goal and the achieved goal.
-            d = goal_distance(achieved_goal, goal)
             if self.reward_type == "sparse":
-                return -(d > self.distance_threshold).astype(np.float32)
+                return -self._is_success(achieved_goal, goal)
             else:
+                d = self.goal_distance(achieved_goal, goal, dim=2)
                 return -d
 
         # RobotEnv methods
@@ -100,6 +111,9 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 object_velr,
                 grip_velp,
                 gripper_vel,
+                target_pos,
+                robot_qpos,
+                robot_qvel,
             ) = self.generate_mujoco_observations()
 
             if not self.has_object:
@@ -107,17 +121,24 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             else:
                 achieved_goal = np.squeeze(object_pos.copy())
 
+            grip_img = self._project_pos(grip_pos)
+            target_img = self._project_pos(target_pos)
+
             obs = np.concatenate(
                 [
-                    grip_pos,
-                    object_pos.ravel(),
-                    object_rel_pos.ravel(),
-                    gripper_state,
-                    object_rot.ravel(),
-                    object_velp.ravel(),
-                    object_velr.ravel(),
-                    grip_velp,
-                    gripper_vel,
+                    grip_img.ravel(),
+                    target_img.ravel(),
+                    robot_qpos,
+                    robot_qvel,
+                    # grip_pos,
+                    # object_pos.ravel(),
+                    # object_rel_pos.ravel(),
+                    # gripper_state,
+                    # object_rot.ravel(),
+                    # object_velp.ravel(),
+                    # object_velr.ravel(),
+                    # grip_velp,
+                    # gripper_vel,
                 ]
             )
 
@@ -126,6 +147,17 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 "achieved_goal": achieved_goal.copy(),
                 "desired_goal": self.goal.copy(),
             }
+
+        def _project_pos(self, pos):
+            min_shape = np.min([self.width, self.height])
+            pos_h = np.ones((4,))
+            pos_h[:3] = pos
+            img = self.C @ pos_h
+            img = img[:, :2] / img[:, 2]
+            img[:, 0] -= self.width / 2
+            img[:, 1] -= self.height / 2
+            img /= min_shape
+            return img
 
         def generate_mujoco_observations(self):
 
@@ -151,8 +183,12 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             return goal.copy()
 
         def _is_success(self, achieved_goal, desired_goal):
-            d = goal_distance(achieved_goal, desired_goal)
+            d = self.goal_distance(achieved_goal, desired_goal, dim=3)
             return (d < self.distance_threshold).astype(np.float32)
+
+        def compute_terminated(self, achieved_goal, desired_goal, info):
+            """Terminate the episode if the goal is achieved."""
+            return bool(self._is_success(achieved_goal, desired_goal))
 
     return BaseWAMEnv
 
@@ -168,10 +204,7 @@ class MujocoPyWAMEnv(get_base_wam_env(MujocoPyRobotEnv)):
         action = super()._set_action(action)
 
         # Apply action to simulation.
-        if self.dof == 3:
-            self.sim.data.qvel[[0, 1, 3]] = action
-        else:
-            self.sim.data.qvel[:] = action
+        self.sim.data.qvel[self.active_joint_indices] = action
 
     def generate_mujoco_observations(self):
         # positions
@@ -181,6 +214,9 @@ class MujocoPyWAMEnv(get_base_wam_env(MujocoPyRobotEnv)):
         grip_velp = self.sim.data.get_site_xvelp("robot0:grip") * dt
 
         robot_qpos, robot_qvel = self._utils.robot_get_obs(self.sim)
+        robot_qpos = robot_qpos[self.observation_joint_indices]
+        robot_qvel = robot_qvel[self.observation_joint_indices]
+
         if self.has_object:
             object_pos = self.sim.data.get_site_xpos("object0")
             # rotations
@@ -196,10 +232,11 @@ class MujocoPyWAMEnv(get_base_wam_env(MujocoPyRobotEnv)):
                 object_rot
             ) = object_velp = object_velr = object_rel_pos = np.zeros(0)
         gripper_state = robot_qpos[-2:]
-
         gripper_vel = (
             robot_qvel[-2:] * dt
         )  # change to a scalar if the gripper is made symmetric
+
+        target_pos = self.sim.data.get_site_xpos("target0")
 
         return (
             grip_pos,
@@ -211,6 +248,7 @@ class MujocoPyWAMEnv(get_base_wam_env(MujocoPyRobotEnv)):
             object_velr,
             grip_velp,
             gripper_vel,
+            target_pos
         )
 
     def _get_gripper_xpos(self):
@@ -282,10 +320,7 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
         action = super()._set_action(action)
 
         # Apply action to simulation.
-        if self.dof == 3:
-            self.data.qvel[[0, 1, 3]] = action
-        else:
-            self.data.qvel[:] = action
+        self.data.qvel[self.active_joint_indices] = action
 
     def generate_mujoco_observations(self):
         # positions
@@ -299,6 +334,8 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
         robot_qpos, robot_qvel = self._utils.robot_get_obs(
             self.model, self.data, self._model_names.joint_names
         )
+        robot_qpos = robot_qpos[self.observation_joint_indices]
+        robot_qvel = robot_qvel[self.observation_joint_indices]
         if self.has_object:
             object_pos = self._utils.get_site_xpos(self.model, self.data, "object0")
             # rotations
@@ -325,6 +362,8 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
             robot_qvel[-2:] * dt
         )  # change to a scalar if the gripper is made symmetric
 
+        target_pos = self._utils.get_site_xpos(self.model, self.data, "target0")
+
         return (
             grip_pos,
             object_pos,
@@ -335,6 +374,9 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
             object_velr,
             grip_velp,
             gripper_vel,
+            target_pos,
+            robot_qpos,
+            robot_qvel,
         )
 
     def _get_gripper_xpos(self):
@@ -373,6 +415,9 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
                 self.model, self.data, "object0:joint", object_qpos
             )
 
+        # Randomize positions of cameras
+        self._reset_cams()
+
         self._mujoco.mj_forward(self.model, self.data)
         return True
 
@@ -389,3 +434,51 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
             self.height_offset = self._utils.get_site_xpos(
                 self.model, self.data, "object0"
             )[2]
+
+    def _reset_cams(self):
+        cam0_config = DEFAULT_CAMERA_CONFIG.copy()
+        cam0_config["azimuth"] = 0
+        # cam0_config["distance"] += self.np_random.uniform(-0.2, 0.2)
+        # cam0_config["azimuth"] = self.np_random.uniform(0, 360)
+        self._cam_setup(0, cam0_config)
+        cam_1_config = DEFAULT_CAMERA_CONFIG.copy()
+        eps = 1
+        cam_1_config["azimuth"] = cam0_config["azimuth"] + 90 + self.np_random.uniform(
+            -eps, eps
+        )
+        self._cam_setup(1, cam_1_config)
+
+    def _cam_setup(self, id, config):
+        cam = self.model.cam(id)
+        lookat = config["lookat"]
+        distance = config["distance"]
+        azimuth = np.radians(config["azimuth"])
+        elevation = np.radians(config["elevation"])
+        pos = lookat.copy()
+        pos[0] += distance * np.cos(elevation) * np.cos(azimuth)
+        pos[1] += distance * np.cos(elevation) * np.sin(azimuth)
+        pos[2] += distance * np.sin(elevation)
+
+        cam.pos[:] = pos
+
+        euler = [np.pi / 2 + elevation, np.pi/2 + azimuth, 0]
+
+        cam.quat[:] = rotations.euler2quat(euler)
+
+        fov = self.model.vis.global_.fovy
+
+        # https://github.com/deepmind/dm_control/blob/main/dm_control/mujoco/engine.py#L736
+        translation = np.eye(4)
+        translation[0:3, 3] = -pos
+        # Rotation matrix (4x4).
+        rotation = np.eye(4)
+        rotation[0:3, 0:3] = rotations.euler2mat(euler).T
+        # Focal transformation matrix (3x4).
+        focal_scaling = (1./np.tan(np.deg2rad(fov)/2)) * self.height / 2.0
+        focal = np.diag([-focal_scaling, focal_scaling, 1.0, 0])[0:3, :]
+        # Image matrix (3x3).
+        image = np.eye(3)
+        image[0, 2] = (self.width - 1) / 2.0
+        image[1, 2] = (self.height - 1) / 2.0
+
+        self.C[id] = image @ focal @ rotation @ translation

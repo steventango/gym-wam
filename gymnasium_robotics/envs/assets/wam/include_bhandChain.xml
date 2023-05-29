@@ -76,6 +76,6 @@
 				<geom mesh="bhand_finger_dist_link_convex" euler="0 0 -.84" rgba="0.5 0.6 0.7 0"/>
 			</body>
 		</body>
-		<site name="robot0:grip" pos="0 0 0.1" rgba="0 0 0 0" size="0.02 0.02 0.02"></site>
+		<site name="robot0:grip" pos="0 0 0.1" rgba="0 0 1 1" size="0.02 0.02 0.02"></site>
 	</body>
 </mujocoinclude>
