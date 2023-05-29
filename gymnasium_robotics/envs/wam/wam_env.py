@@ -436,16 +436,27 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
             )[2]
 
     def _reset_cams(self):
+        azimuth_eps = 150
+        distance_eps = 0.5
+        elevation_eps = 5
+        orthogonal_eps = 5
+
+        # randomize cam0 position
         cam0_config = DEFAULT_CAMERA_CONFIG.copy()
-        cam0_config["azimuth"] = 0
-        # cam0_config["distance"] += self.np_random.uniform(-0.2, 0.2)
-        # cam0_config["azimuth"] = self.np_random.uniform(0, 360)
+        cam0_config["azimuth"] += self.np_random.uniform(-azimuth_eps, azimuth_eps)
+        cam0_config["distance"] += self.np_random.uniform(-distance_eps, distance_eps)
+        cam0_config["elevation"] += self.np_random.uniform(-elevation_eps, elevation_eps)
         self._cam_setup(0, cam0_config)
+
+        # randomize cam1 position
         cam_1_config = DEFAULT_CAMERA_CONFIG.copy()
-        eps = 1
-        cam_1_config["azimuth"] = cam0_config["azimuth"] + 90 + self.np_random.uniform(
-            -eps, eps
-        )
+        if np.random.uniform() < 0.5:
+            cam_1_config["azimuth"] = cam0_config["azimuth"] + 90
+        else:
+            cam_1_config["azimuth"] = cam0_config["azimuth"] - 90
+        cam_1_config["azimuth"] += self.np_random.uniform(-orthogonal_eps, orthogonal_eps)
+        cam_1_config["distance"] += self.np_random.uniform(-distance_eps, distance_eps)
+        cam_1_config["elevation"] += self.np_random.uniform(-elevation_eps, elevation_eps)
         self._cam_setup(1, cam_1_config)
 
     def _cam_setup(self, id, config):
