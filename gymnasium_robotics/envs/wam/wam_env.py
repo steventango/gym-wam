@@ -67,6 +67,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.C = np.zeros((2, 3, 4))
             self.width = 640
             self.height = 480
+            self.internal_goal = np.zeros((3,))
             if self.dof == 3:
                 self.active_joint_indices = [0, 1, 3]
                 self.observation_joint_indices = self.active_joint_indices + [4]
@@ -77,20 +78,16 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
         # GoalEnv methods
         # ----------------------------
-        def goal_distance(self, goal_a, goal_b, dim=3):
+        def goal_distance(self, goal_a, goal_b):
             assert goal_a.shape == goal_b.shape
-            if dim == 3:
-                return np.linalg.norm(goal_a - goal_b, axis=-1)
-            goal_a_img = self._project_pos(goal_a)
-            goal_b_img = self._project_pos(goal_b)
-            return np.linalg.norm(goal_a_img - goal_b_img)
+            return np.linalg.norm(goal_a - goal_b)
 
         def compute_reward(self, achieved_goal, goal, info):
             # Compute distance between goal and the achieved goal.
             if self.reward_type == "sparse":
                 return -self._is_success(achieved_goal, goal)
             else:
-                d = self.goal_distance(achieved_goal, goal, dim=2)
+                d = self.goal_distance(achieved_goal, goal)
                 return -d
 
         # RobotEnv methods
@@ -116,18 +113,19 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 robot_qvel,
             ) = self.generate_mujoco_observations()
 
-            if not self.has_object:
-                achieved_goal = grip_pos.copy()
-            else:
-                achieved_goal = np.squeeze(object_pos.copy())
-
             grip_img = self._project_pos(grip_pos)
             target_img = self._project_pos(target_pos)
 
+            if not self.has_object:
+                achieved_goal = grip_img.ravel().copy()
+            else:
+                achieved_goal = np.squeeze(object_pos.copy())
+            desired_goal = target_img.ravel().copy()
+
             obs = np.concatenate(
                 [
-                    grip_img.ravel(),
-                    target_img.ravel(),
+                    # grip_img.ravel(),
+                    # target_img.ravel(),
                     robot_qpos,
                     robot_qvel,
                     # grip_pos,
@@ -145,7 +143,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             return {
                 "observation": obs.copy(),
                 "achieved_goal": achieved_goal.copy(),
-                "desired_goal": self.goal.copy(),
+                "desired_goal": desired_goal.copy(),
             }
 
         def _project_pos(self, pos):
@@ -177,13 +175,19 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 if self.target_in_the_air and self.np_random.uniform() < 0.5:
                     goal[2] += self.np_random.uniform(0, 0.45)
             else:
-                goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
-                    -self.target_range, self.target_range, size=3
+                goal = self.np_random.uniform(
+                    [0.25, -0.35, 0.4],
+                    [0.75, 0.35, 0.7]
                 )
-            return goal.copy()
+                goal = np.array(
+                    [0.6, 0.2, 0.5]
+                )
+            self.internal_goal = goal.copy()
+            goal_img = self._project_pos(goal)
+            return goal_img.ravel().copy()
 
         def _is_success(self, achieved_goal, desired_goal):
-            d = self.goal_distance(achieved_goal, desired_goal, dim=3)
+            d = self.goal_distance(achieved_goal, desired_goal)
             return (d < self.distance_threshold).astype(np.float32)
 
         def compute_terminated(self, achieved_goal, desired_goal, info):
@@ -259,7 +263,7 @@ class MujocoPyWAMEnv(get_base_wam_env(MujocoPyRobotEnv)):
         # Visualize target.
         sites_offset = (self.sim.data.site_xpos - self.sim.model.site_pos).copy()
         site_id = self.sim.model.site_name2id("target0")
-        self.sim.model.site_pos[site_id] = self.goal - sites_offset[0]
+        self.sim.model.site_pos[site_id] = self.internal_goal - sites_offset[0]
         self.sim.forward()
 
     def _viewer_setup(self):
@@ -389,7 +393,7 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
         site_id = self._mujoco.mj_name2id(
             self.model, self._mujoco.mjtObj.mjOBJ_SITE, "target0"
         )
-        self.model.site_pos[site_id] = self.goal - sites_offset[0]
+        self.model.site_pos[site_id] = self.internal_goal - sites_offset[0]
         self._mujoco.mj_forward(self.model, self.data)
 
     def _reset_sim(self):
@@ -440,7 +444,7 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
         distance_eps = 0.5
         elevation_eps = 5
         orthogonal_eps = 5
-        randomize = True
+        randomize = False
 
         # randomize cam0 position
         cam0_config = DEFAULT_CAMERA_CONFIG.copy()
