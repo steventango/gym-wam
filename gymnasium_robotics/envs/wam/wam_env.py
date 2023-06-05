@@ -80,12 +80,8 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
         # GoalEnv methods
         # ----------------------------
-        def goal_distance(self, goal_a, goal_b, dim=3):
+        def goal_distance(self, goal_a, goal_b):
             assert goal_a.shape == goal_b.shape
-            if dim == 3:
-                goal_a = self.achieved_goal
-                goal_b = self.goal3d
-                return np.linalg.norm(goal_a - goal_b, axis=-1)
             goal_a = goal_a.ravel()
             goal_b = goal_b.ravel()
             return np.linalg.norm(goal_a - goal_b, axis=-1)
@@ -95,7 +91,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             if self.reward_type == "sparse":
                 return self._is_success(achieved_goal, goal)
             else:
-                d = self.goal_distance(achieved_goal, goal, dim=2)
+                d = self.goal_distance(achieved_goal, goal)
                 return -d
 
         # RobotEnv methods
@@ -177,7 +173,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             return goal_img
 
         def _is_success(self, achieved_goal, desired_goal):
-            d = self.goal_distance(achieved_goal, desired_goal, dim=3)
+            d = self.goal_distance(achieved_goal, desired_goal)
             return (d < self.distance_threshold).astype(np.float32)
 
         def compute_terminated(self, achieved_goal, desired_goal, info):
