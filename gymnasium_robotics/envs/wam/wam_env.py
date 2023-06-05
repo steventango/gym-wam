@@ -64,10 +64,6 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.distance_threshold = distance_threshold
             self.reward_type = reward_type
             self.dof = dof
-            self.C = np.zeros((2, 3, 4))
-            self.C[:] = np.eye(3, 4)
-            self.width = 640
-            self.height = 480
             self.goal3d = np.zeros(3)
             if self.dof == 3:
                 self.active_joint_indices = [0, 1, 3]
@@ -82,8 +78,6 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         # ----------------------------
         def goal_distance(self, goal_a, goal_b):
             assert goal_a.shape == goal_b.shape
-            goal_a = goal_a.ravel()
-            goal_b = goal_b.ravel()
             return np.linalg.norm(goal_a - goal_b, axis=-1)
 
         def compute_reward(self, achieved_goal, goal, info):
@@ -118,7 +112,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             ) = self.generate_mujoco_observations()
 
             if not self.has_object:
-                achieved_goal = self._project_pos(grip_pos).ravel()
+                achieved_goal = grip_pos.ravel()
             else:
                 achieved_goal = np.squeeze(object_pos.copy())
 
@@ -169,8 +163,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                     [0.75, 0.35, 0.8]
                 )
             self.goal3d = goal.copy()
-            goal_img = self._project_pos(goal).ravel()
-            return goal_img
+            return self.goal3d
 
         def _is_success(self, achieved_goal, desired_goal):
             d = self.goal_distance(achieved_goal, desired_goal)
@@ -352,6 +345,8 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
             robot_qvel[-2:] * dt
         )  # change to a scalar if the gripper is made symmetric
 
+        # Important to subtract the sites offset, otherwise inconsistent
+        # behaviour occurs with / without render_mode="human"
         sites_offset = (self.data.site_xpos - self.model.site_pos).copy()
         target_pos = self.goal3d - sites_offset[0]
 
@@ -406,9 +401,6 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
                 self.model, self.data, "object0:joint", object_qpos
             )
 
-        # Randomize positions of cameras
-        self._reset_cams()
-
         self._mujoco.mj_forward(self.model, self.data)
         return True
 
@@ -425,69 +417,3 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
             self.height_offset = self._utils.get_site_xpos(
                 self.model, self.data, "object0"
             )[2]
-
-    def _reset_cams(self):
-        azimuth_eps = 150
-        distance_eps = 0.5
-        elevation_eps = 5
-        orthogonal_eps = 5
-        randomize = False
-
-        # randomize cam0 position
-        cam0_config = DEFAULT_CAMERA_CONFIG.copy()
-        if randomize:
-            cam0_config["azimuth"] += self.np_random.uniform(-azimuth_eps, azimuth_eps)
-            cam0_config["distance"] += self.np_random.uniform(-distance_eps, distance_eps)
-            cam0_config["elevation"] += self.np_random.uniform(-elevation_eps, elevation_eps)
-        else:
-            cam0_config["azimuth"] = -135
-        self._cam_setup(0, cam0_config)
-
-        # randomize cam1 position
-        cam_1_config = DEFAULT_CAMERA_CONFIG.copy()
-        if randomize:
-            if self.np_random.uniform() < 0.5:
-                cam_1_config["azimuth"] = cam0_config["azimuth"] + 90
-            else:
-                cam_1_config["azimuth"] = cam0_config["azimuth"] - 90
-            cam_1_config["azimuth"] += self.np_random.uniform(-orthogonal_eps, orthogonal_eps)
-            cam_1_config["distance"] += self.np_random.uniform(-distance_eps, distance_eps)
-            cam_1_config["elevation"] += self.np_random.uniform(-elevation_eps, elevation_eps)
-        else:
-            cam_1_config["azimuth"] = cam0_config["azimuth"] - 90
-        self._cam_setup(1, cam_1_config)
-
-    def _cam_setup(self, id, config):
-        cam = self.model.cam(id)
-        lookat = config["lookat"]
-        distance = config["distance"]
-        azimuth = np.radians(config["azimuth"])
-        elevation = np.radians(config["elevation"])
-        pos = lookat.copy()
-        pos[0] += distance * np.cos(elevation) * np.cos(azimuth)
-        pos[1] += distance * np.cos(elevation) * np.sin(azimuth)
-        pos[2] += distance * np.sin(elevation)
-
-        cam.pos[:] = pos
-
-        euler = [np.pi / 2 + elevation, np.pi/2 + azimuth, 0]
-
-        cam.quat[:] = rotations.euler2quat(euler)
-
-        fov = self.model.vis.global_.fovy
-
-        # https://github.com/deepmind/dm_control/blob/main/dm_control/mujoco/engine.py#L736
-        translation = np.eye(4)
-        translation[0:3, 3] = -pos
-        # Rotation matrix (4x4).
-        rotation = np.eye(4)
-        rotation[0:3, 0:3] = rotations.euler2mat(euler).T
-        # Focal transformation matrix (3x4).
-        focal_scaling = (1./np.tan(np.deg2rad(fov)/2)) * self.height / 2.0
-        focal = np.diag([-focal_scaling, focal_scaling, 1.0, 0])[0:3, :]
-        # Image matrix (3x3).
-        image = np.eye(3)
-        image[0, 2] = (self.width - 1) / 2.0
-        image[1, 2] = (self.height - 1) / 2.0
-
-        self.C[id] = image @ focal @ rotation @ translation

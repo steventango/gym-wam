@@ -1,4 +1,6 @@
 # noqa: D104
+import itertools
+
 from gymnasium.envs.registration import register
 
 from gymnasium_robotics.core import GoalEnv
@@ -77,7 +79,7 @@ def register_robotics_envs():
         )
 
         # WAM
-        for dof in [3, 7]:
+        for obs, dof in itertools.product(["Visual", ""], [3, 7]):
             kwargs = {
                 "reward_type": reward_type,
                 "dof": dof
@@ -85,58 +87,58 @@ def register_robotics_envs():
             suffix = "Dense" if reward_type == "dense" else ""
             if dof == 3:
                 suffix += f"{dof}DOF"
+            obs_ = (obs.lower() + '_') if obs else ''
             register(
-                id=f"WAMSlide{suffix}-v1",
-                entry_point="gymnasium_robotics.envs.wam.slide:MujocoPyWAMSlideEnv",
+                id=f"WAM{obs}Slide{suffix}-v1",
+                entry_point=f"gymnasium_robotics.envs.wam.{obs_}slide:MujocoPyWAM{obs}SlideEnv",
                 kwargs=kwargs,
                 max_episode_steps=50,
             )
 
             register(
-                id=f"WAMSlide{suffix}-v2",
-                entry_point="gymnasium_robotics.envs.wam.slide:MujocoWAMSlideEnv",
+                id=f"WAM{obs}Slide{suffix}-v2",
+                entry_point=f"gymnasium_robotics.envs.wam.{obs_}slide:MujocoWAM{obs}SlideEnv",
                 kwargs=kwargs,
                 max_episode_steps=50,
             )
 
             register(
-                id=f"WAMPickAndPlace{suffix}-v1",
-                entry_point="gymnasium_robotics.envs.wam.pick_and_place:MujocoPyWAMPickAndPlaceEnv",
+                id=f"WAM{obs}PickAndPlace{suffix}-v1",
+                entry_point=f"gymnasium_robotics.envs.wam.{obs_}pick_and_place:MujocoPyWAM{obs}PickAndPlaceEnv",
                 kwargs=kwargs,
                 max_episode_steps=50,
             )
 
             register(
-                id=f"WAMPickAndPlace{suffix}-v2",
-                entry_point="gymnasium_robotics.envs.wam.pick_and_place:MujocoWAMPickAndPlaceEnv",
+                id=f"WAM{obs}PickAndPlace{suffix}-v2",
+                entry_point=f"gymnasium_robotics.envs.wam.{obs_}pick_and_place:MujocoWAM{obs}PickAndPlaceEnv",
                 kwargs=kwargs,
                 max_episode_steps=50,
             )
 
             register(
-                id=f"WAMReach{suffix}-v1",
-                entry_point="gymnasium_robotics.envs.wam.reach:MujocoPyWAMReachEnv",
+                id=f"WAM{obs}Reach{suffix}-v1",
+                entry_point=f"gymnasium_robotics.envs.wam.{obs_}reach:MujocoPyWAM{obs}ReachEnv",
                 kwargs=kwargs,
                 max_episode_steps=50,
             )
 
             register(
-                id=f"WAMReach{suffix}-v2",
-                entry_point="gymnasium_robotics.envs.wam.reach:MujocoWAMReachEnv",
+                id=f"WAM{obs}Reach{suffix}-v2",
+                entry_point=f"gymnasium_robotics.envs.wam.{obs_}reach:MujocoWAM{obs}ReachEnv",
                 kwargs=kwargs,
                 max_episode_steps=50,
             )
 
             register(
-                id=f"WAMPush{suffix}-v1",
-                entry_point="gymnasium_robotics.envs.wam.push:MujocoPyWAMPushEnv",
+                id=f"WAM{obs}Push{suffix}-v1",
+                entry_point=f"gymnasium_robotics.envs.wam.{obs_}push:MujocoPyWAM{obs}PushEnv",
                 kwargs=kwargs,
                 max_episode_steps=50,
             )
-
             register(
-                id=f"WAMPush{suffix}-v2",
-                entry_point="gymnasium_robotics.envs.wam.push:MujocoWAMPushEnv",
+                id=f"WAM{obs}Push{suffix}-v2",
+                entry_point=f"gymnasium_robotics.envs.wam.{obs_}push:MujocoWAM{obs}PushEnv",
                 kwargs=kwargs,
                 max_episode_steps=50,
             )
