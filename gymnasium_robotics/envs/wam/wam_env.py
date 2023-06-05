@@ -65,6 +65,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.reward_type = reward_type
             self.dof = dof
             self.C = np.zeros((2, 3, 4))
+            self.C[:] = np.eye(3, 4)
             self.width = 640
             self.height = 480
             self.goal3d = np.zeros(3)
