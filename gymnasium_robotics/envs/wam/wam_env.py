@@ -4,7 +4,7 @@ import numpy as np
 
 from gymnasium_robotics.envs.robot_env import MujocoPyRobotEnv, MujocoRobotEnv
 from gymnasium_robotics.utils import rotations
-
+from gymnasium import spaces
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 2.5,
@@ -122,38 +122,20 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             ) = self.generate_mujoco_observations()
 
             if not self.has_object:
-                achieved_goal = grip_pos.copy()
-                achieved_goal_img = self._project_pos(achieved_goal)
+                achieved_goal = self._project_pos(grip_pos).ravel()
             else:
                 achieved_goal = np.squeeze(object_pos.copy())
 
-            grip_img = self._project_pos(grip_pos)
-            target_img = self._project_pos(target_pos)
-
             obs = np.concatenate(
                 [
-                    grip_img.ravel(),
-                    target_img.ravel(),
                     robot_qpos,
-                    robot_qvel,
-                    # grip_pos,
-                    # object_pos.ravel(),
-                    # object_rel_pos.ravel(),
-                    # gripper_state,
-                    # object_rot.ravel(),
-                    # object_velp.ravel(),
-                    # object_velr.ravel(),
-                    # grip_velp,
-                    # gripper_vel,
+                    robot_qvel
                 ]
             )
 
-            self.achieved_goal = achieved_goal.copy()
-            self.desired_goal = target_pos.copy()
-
             return {
                 "observation": obs.copy(),
-                "achieved_goal": achieved_goal_img.copy(),
+                "achieved_goal": achieved_goal.copy(),
                 "desired_goal": self.goal.copy(),
             }
 
@@ -191,7 +173,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                     [0.75, 0.35, 0.8]
                 )
             self.goal3d = goal.copy()
-            goal_img = self._project_pos(goal)
+            goal_img = self._project_pos(goal).ravel()
             return goal_img
 
         def _is_success(self, achieved_goal, desired_goal):
