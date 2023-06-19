@@ -72,7 +72,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 self.active_joint_indices = list(range(self.dof))
                 self.observation_joint_indices = self.active_joint_indices
             super().__init__(n_actions=dof, **kwargs)
-            self.action_space = spaces.Box(-0.7, 0.7, shape=(dof,), dtype="float32")
+            self.action_space = spaces.Box(-1, 1, shape=(dof,), dtype="float32")
 
         # GoalEnv methods
         # ----------------------------
