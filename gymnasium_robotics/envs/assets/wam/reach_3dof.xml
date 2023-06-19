@@ -4,6 +4,9 @@
 	<option timestep="0.002">
 		<flag warmstart="enable"></flag>
 	</option>
+	<option>
+		<flag gravity="disable"></flag>
+	</option>
 
 	<include file="shared_3dof.xml"></include>
 	
