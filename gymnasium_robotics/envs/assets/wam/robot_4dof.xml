@@ -41,7 +41,6 @@
           <inertial pos="0.00683259 3.309e-005 0.392492"
             quat="0.647136 0.0170822 0.0143038 0.762049" mass="2.20228"
             diaginertia="0.0592718 0.0592207 0.00313419" />
-            <!-- TODO software disable this joint instead? -->
           <joint name="robot0/shoulder_yaw_joint" range="-2.8 2.8" damping="1.65" />
           <geom class="viz" mesh="upper_arm_link_fine" />
           <geom class="col" mesh="upper_arm_link_convex_decomposition_p1" />

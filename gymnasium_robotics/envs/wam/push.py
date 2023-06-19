@@ -16,12 +16,12 @@ class MujocoPyWAMPushEnv(MujocoPyWAMEnv, EzPickle):
             "robot0:slide2": 0.0,
             "object0:joint": [1.25, 0.53, 0.4, 1.0, 0.0, 0.0, 0.0],
         }
-        if dof == 3:
-            model_xml_path = MODEL_XML_PATH.replace(".xml", f"_{dof}dof.xml")
+        if dof in {3, 4}:
+            model_xml_path = MODEL_XML_PATH.replace(".xml", "_4dof.xml")
         elif dof == 7:
             model_xml_path = MODEL_XML_PATH
         else:
-            raise ValueError("dof must be either 3 or 7")
+            raise ValueError("dof must be either 3, 4, or 7")
         MujocoPyWAMEnv.__init__(
             self,
             model_path=model_xml_path,
@@ -170,12 +170,12 @@ class MujocoWAMPushEnv(MujocoWAMEnv, EzPickle):
             "robot0:slide2": 0.0,
             "object0:joint": [1.25, 0.53, 0.4, 1.0, 0.0, 0.0, 0.0],
         }
-        if dof == 3:
-            model_xml_path = MODEL_XML_PATH.replace(".xml", f"_{dof}dof.xml")
+        if dof in {3, 4}:
+            model_xml_path = MODEL_XML_PATH.replace(".xml", "_4dof.xml")
         elif dof == 7:
             model_xml_path = MODEL_XML_PATH
         else:
-            raise ValueError("dof must be either 3 or 7")
+            raise ValueError("dof must be either 3, 4, or 7")
         MujocoWAMEnv.__init__(
             self,
             model_path=model_xml_path,
