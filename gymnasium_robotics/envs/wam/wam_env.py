@@ -119,7 +119,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             obs = np.concatenate(
                 [
                     robot_qpos,
-                    robot_qvel
+                    # robot_qvel
                 ]
             )
 
