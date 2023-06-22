@@ -67,10 +67,9 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.goal3d = np.zeros(3)
             if self.dof == 3:
                 self.active_joint_indices = [0, 1, 3]
-                self.observation_joint_indices = self.active_joint_indices + [4]
             else:
                 self.active_joint_indices = list(range(self.dof))
-                self.observation_joint_indices = self.active_joint_indices
+            self.observation_joint_indices = self.active_joint_indices
             super().__init__(n_actions=dof, **kwargs)
             self.action_space = spaces.Box(-1, 1, shape=(dof,), dtype="float32")
 
@@ -118,7 +117,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
             obs = np.concatenate(
                 [
-                    robot_qpos,
+                    robot_qpos[self.observation_joint_indices],
                     # robot_qvel
                 ]
             )
@@ -197,8 +196,6 @@ class MujocoPyWAMEnv(get_base_wam_env(MujocoPyRobotEnv)):
         grip_velp = self.sim.data.get_site_xvelp("robot0:grip") * dt
 
         robot_qpos, robot_qvel = self._utils.robot_get_obs(self.sim)
-        robot_qpos = robot_qpos[self.observation_joint_indices]
-        robot_qvel = robot_qvel[self.observation_joint_indices]
 
         if self.has_object:
             object_pos = self.sim.data.get_site_xpos("object0")
@@ -317,8 +314,6 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
         robot_qpos, robot_qvel = self._utils.robot_get_obs(
             self.model, self.data, self._model_names.joint_names
         )
-        robot_qpos = robot_qpos[self.observation_joint_indices]
-        robot_qvel = robot_qvel[self.observation_joint_indices]
         if self.has_object:
             object_pos = self._utils.get_site_xpos(self.model, self.data, "object0")
             # rotations
