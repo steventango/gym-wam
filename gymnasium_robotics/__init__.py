@@ -81,8 +81,9 @@ def register_robotics_envs():
         # WAM
         for obs, dof in itertools.product(["Visual", ""], [3, 4, 7]):
             kwargs = {
+                "control_type": "position",
                 "reward_type": reward_type,
-                "dof": dof
+                "dof": dof,
             }
             suffix = "Dense" if reward_type == "dense" else ""
             if dof != 7:

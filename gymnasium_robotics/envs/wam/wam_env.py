@@ -33,7 +33,9 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             target_range,
             distance_threshold,
             reward_type,
+            control_type,
             dof,
+            normalize_observation=True,
             **kwargs
         ):
             """Initializes a new WAM environment.
@@ -51,7 +53,9 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 distance_threshold (float): the threshold after which a goal is considered achieved
                 initial_qpos (dict): a dictionary of joint names and values that define the initial configuration
                 reward_type ('sparse' or 'dense'): the reward type, i.e. sparse or dense
+                control_type ('position', 'velocity', 'torque'): control type for the robot
                 dof (int): the number of degrees of freedom of the robot
+                normalize_observation (bool): whether or not to normalize observations
             """
 
             self.gripper_extra_height = gripper_extra_height
@@ -63,7 +67,9 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.target_range = target_range
             self.distance_threshold = distance_threshold
             self.reward_type = reward_type
+            self.control_type = control_type
             self.dof = dof
+            self.normalize_observation = normalize_observation
             self.goal3d = np.zeros(3)
             if self.dof == 3:
                 self.active_joint_indices = [0, 1, 3]
@@ -71,7 +77,15 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 self.active_joint_indices = list(range(self.dof))
             self.observation_joint_indices = self.active_joint_indices
             super().__init__(n_actions=dof, **kwargs)
-            self.action_space = spaces.Box(-1, 1, shape=(dof,), dtype="float32")
+            # low = np.array([-2.6, -2.0, -2.8, -0.9, -4.76, -1.6, -3.0], dtype=np.float32)
+            # high = np.array([2.6, 2.0, 2.8, 3.1, 1.24, 1.6, 3.0], dtype=np.float32)
+            # self.action_space = spaces.Box(
+            #     low[self.active_joint_indices],
+            #     high[self.active_joint_indices],
+            #     shape=(dof,),
+            #     dtype=np.float32,
+            # )
+            self.min_shape = np.min([self.width, self.height])
 
         # GoalEnv methods
         # ----------------------------
@@ -129,14 +143,14 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             }
 
         def _project_pos(self, pos):
-            min_shape = np.min([self.width, self.height])
             pos_h = np.ones((4,))
             pos_h[:3] = pos
             img = self.C @ pos_h
-            img = img[:, :2] / img[:, 2]
-            img[:, 0] -= self.width / 2
-            img[:, 1] -= self.height / 2
-            img /= min_shape
+            if self.normalize_observation:
+                img = img[:, :2] / img[:, 2]
+                img[:, 0] -= self.width / 2
+                img[:, 1] -= self.height / 2
+                img /= self.min_shape
             return img
 
         def generate_mujoco_observations(self):
@@ -186,7 +200,14 @@ class MujocoPyWAMEnv(get_base_wam_env(MujocoPyRobotEnv)):
         action = super()._set_action(action)
 
         # Apply action to simulation.
-        self.sim.data.qvel[self.active_joint_indices] = action
+        if self.control_type == 'position':
+            self.sim.data.qpos[self.active_joint_indices] += action
+        elif self.control_type == 'velocity':
+            self.sim.data.qvel[self.active_joint_indices] = action
+        elif self.control_type == 'torque':
+            self.sim.data.ctrl[self.active_joint_indices] = action
+        else:
+            raise NotImplementedError
 
     def generate_mujoco_observations(self):
         # positions
@@ -300,7 +321,14 @@ class MujocoWAMEnv(get_base_wam_env(MujocoRobotEnv)):
         action = super()._set_action(action)
 
         # Apply action to simulation.
-        self.data.qvel[self.active_joint_indices] = action
+        if self.control_type == 'position':
+            self.data.qpos[self.active_joint_indices] += action
+        elif self.control_type == 'velocity':
+            self.data.qvel[self.active_joint_indices] = action
+        elif self.control_type == 'torque':
+            self.data.ctrl[self.active_joint_indices] = action
+        else:
+            raise NotImplementedError
 
     def generate_mujoco_observations(self):
         # positions
