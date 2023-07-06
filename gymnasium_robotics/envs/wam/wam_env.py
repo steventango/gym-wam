@@ -77,8 +77,8 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 self.active_joint_indices = list(range(self.dof))
             self.observation_joint_indices = self.active_joint_indices
             super().__init__(n_actions=dof, **kwargs)
-            max_delta = 0.1
-            self.action_space = spaces.Box(-max_delta, max_delta, shape=(dof,), dtype="float32")
+            self.max_delta = 0.05
+            self.action_space = spaces.Box(-self.max_delta, self.max_delta, shape=(dof,), dtype="float32")
             self.min_shape = np.min([self.width, self.height])
 
         # GoalEnv methods
@@ -179,6 +179,12 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         def compute_terminated(self, achieved_goal, desired_goal, info):
             """Terminate the episode if the goal is achieved."""
             return bool(self._is_success(achieved_goal, desired_goal))
+
+        def step(self, action):
+            """Preserve the direction of the action, but ensure norm <= max_delta."""
+            if np.linalg.norm(action, ord=2) > self.max_delta:
+                action = action / np.linalg.norm(action, ord=2) * self.max_delta
+            return super().step(action)
 
     return BaseWAMEnv
 
