@@ -78,12 +78,7 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.observation_joint_indices = self.active_joint_indices
             super().__init__(n_actions=dof, **kwargs)
             max_delta = 0.1
-            self.action_space = spaces.Box(
-                np.full((dof,), -max_delta),
-                np.full((dof,), max_delta),
-                shape=(dof,),
-                dtype=np.float32,
-            )
+            self.action_space = spaces.Box(-max_delta, max_delta, shape=(dof,), dtype="float32")
             self.min_shape = np.min([self.width, self.height])
 
         # GoalEnv methods
