@@ -1,10 +1,10 @@
 from typing import Union
 
 import numpy as np
+from gymnasium import spaces
 
 from gymnasium_robotics.envs.robot_env import MujocoPyRobotEnv, MujocoRobotEnv
 from gymnasium_robotics.utils import rotations
-from gymnasium import spaces
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 2.5,
@@ -91,6 +91,8 @@ def get_base_wam_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             # Compute distance between goal and the achieved goal.
             if self.reward_type == "sparse":
                 return self._is_success(achieved_goal, goal)
+            elif self.reward_type == "timestep":
+                return -1
             else:
                 d = self.goal_distance(achieved_goal, goal)
                 return -d

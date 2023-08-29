@@ -78,14 +78,19 @@ def register_robotics_envs():
             max_episode_steps=50,
         )
 
-        # WAM
+    # WAM
+    for reward_type in ["sparse", "dense", "timestep"]:
         for obs, dof in itertools.product(["Visual", ""], [3, 4, 7]):
             kwargs = {
                 "control_type": "position",
                 "reward_type": reward_type,
                 "dof": dof,
             }
-            suffix = "Dense" if reward_type == "dense" else ""
+            suffix = ""
+            if reward_type == "timestep":
+                suffix = "Timestep"
+            elif reward_type == "dense":
+                suffix = "Dense"
             if dof != 7:
                 suffix += f"{dof}DOF"
             obs_ = (obs.lower() + '_') if obs else ''
@@ -144,6 +149,7 @@ def register_robotics_envs():
                 max_episode_steps=50,
             )
 
+    for reward_type in ["sparse", "dense"]:
         # Hand
         register(
             id=f"HandReach{suffix}-v0",
